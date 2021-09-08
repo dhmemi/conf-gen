@@ -1,0 +1,20 @@
+---
+Language:      Cpp
+BasedOnStyle:  LLVM
+AlwaysBreakTemplateDeclarations: Yes
+BinPackParameters: false
+BinPackArguments: false
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+
+IncludeBlocks :  Regroup
+IncludeCategories:
+  - Regex:           '<[[:alnum:].]+>'
+    Priority:        1
+  - Regex:           '^"(include|test)/'
+    Priority:        2
+    CaseSensitive:   true
+  - Regex:           '.*'
+    Priority:        3
+...
+
+

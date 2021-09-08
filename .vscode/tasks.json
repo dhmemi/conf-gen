@@ -1,0 +1,64 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "bazel build //:compdb",
+            "type": "shell",
+            "command": "bazel",
+            "args": [
+                "build",
+                "//:compdb"
+            ],
+            "runOptions": {
+                "runOn": "folderOpen"
+            }
+        },
+        {
+            "label": "build all test cases",
+            "type": "shell",
+            "command": "bazel",
+            "args": [
+                "build",
+                "//test/..."
+            ],
+            "group": "build",
+            "runOptions": {
+                "runOn": "folderOpen"
+            },
+            "presentation": {
+                // Reveal the output only if unrecognized errors occur.
+                "reveal": "silent"
+            },
+            "windows": {
+                // Use the standard MS compiler pattern to detect errors, warnings and infos
+                "problemMatcher": "$msCompile"
+            },
+            "linux": {
+                "problemMatcher": "$gcc"
+            }
+        },
+        {
+            "label": "build aidi-cli",
+            "type": "shell",
+            "command": "bazel",
+            "args": [
+                "build",
+                "//cli:aidi-cli",
+            ],
+            "group": "build",
+            "presentation": {
+                // Reveal the output only if unrecognized errors occur.
+                "reveal": "silent"
+            },
+            "windows": {
+                // Use the standard MS compiler pattern to detect errors, warnings and infos
+                "problemMatcher": "$msCompile"
+            },
+            "linux": {
+                "problemMatcher": "$gcc"
+            }
+        },
+    ]
+}

@@ -1,0 +1,20 @@
+{
+    // See http://go.microsoft.com/fwlink/?LinkId=827846 to learn about workspace recommendations.
+    // Extension identifier format: ${publisher}.${name}. Example: vscode.csharp
+    // List of extensions which should be recommended for users of this workspace.
+    "recommendations": [
+        "BazelBuild.vscode-bazel",
+        "llvm-vs-code-extensions.vscode-clangd",
+        "cschlosser.doxdocgen",
+        "ms-vscode.cpptools",
+        "eamodio.gitlens",
+        "mhutchie.git-graph",
+        "gruntfuggly.auto-snippet",
+        "gruntfuggly.todo-tree",
+        "matepek.vscode-catch2-test-adapter",
+        "ms-azuretools.vscode-docker",
+        "ms-vscode-remote.remote-containers",
+    ],
+    // List of extensions recommended by VS Code that should not be recommended for users of this workspace.
+    "unwantedRecommendations": []
+}

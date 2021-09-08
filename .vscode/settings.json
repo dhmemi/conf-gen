@@ -1,0 +1,51 @@
+{
+    "editor.formatOnPaste": true,
+    "editor.formatOnType": true,
+    "editor.formatOnSave": true,
+    "C_Cpp.errorSquiggles": "Enabled",
+    "C_Cpp.default.intelliSenseMode": "windows-msvc-x64",
+    "C_Cpp.intelliSenseEngineFallback": "Enabled",
+    "C_Cpp.intelliSenseEngine": "Disabled",
+    "clangd.arguments": [
+        "--background-index",
+        "--compile-commands-dir=${workspaceFolder}/bazel-bin/",
+        "--clang-tidy",
+        "--all-scopes-completion",
+        "--completion-style=detailed",
+        "--function-arg-placeholders",
+        "--header-insertion=iwyu",
+        "--pch-storage=disk",
+    ],
+    "bazel.buildifierFixOnFormat": true,
+    "bazel.enableCodeLens": true,
+    "bazel.queriesShareServer": true,
+    "doxdocgen.generic.useGitUserEmail": true,
+    "doxdocgen.generic.useGitUserName": true,
+    "doxdocgen.file.fileOrder": [
+        "custom"
+    ],
+    "doxdocgen.file.customTag": [
+        "@brief //TODO({author}) (请在此简述本文件所实现的功能)",
+        "",
+        "Copyright (c) 2017-present, Aqrose Technology, Ltd. All rights reserved.",
+        "",
+        "@details",
+        "    //TODO({author}) (请在此补充关于本文件的详细说明)",
+    ],
+    "autoSnippet.snippets": [],
+    "files.associations": {
+        ".clang-tidy": "yaml",
+        ".clang-format": "yaml",
+    },
+    "json.maxItemsComputed": 20000,
+    "testMate.cpp.test.advancedExecutables": [
+        {
+            "pattern": "bazel-bin/test/*{gtest,catch2}*",
+            "runTask": {
+                "before": [
+                    "build all test cases"
+                ]
+            }
+        }
+    ],
+}
