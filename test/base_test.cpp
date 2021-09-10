@@ -6,5 +6,5 @@ TEST_CASE("test_case", "[temp]") {
   nlohmann::json j;
   const std::string name = "123324";
   j[name] = "safdsfsdgf";
-  CHECK(j[name] == "afdsfsdgf");
+  CHECK(j[name] == "safdsfsdgf");
 }
