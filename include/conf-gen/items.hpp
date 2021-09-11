@@ -16,16 +16,16 @@ namespace confgen {
 
 using json = nlohmann::json;
 
-namespace data_t {
-using Bool = bool;
-using Int = int;
-using F64 = double;
-using Str = std::string;
-using VecBool = std::vector<bool>;
-using VecInt = std::vector<int>;
-using VecF64 = std::vector<double>;
-using VecStr = std::vector<std::string>;
-} // namespace data_t
+struct data_t {
+  using Bool = bool;
+  using Int = int;
+  using F64 = double;
+  using Str = std::string;
+  using VecBool = std::vector<bool>;
+  using VecInt = std::vector<int>;
+  using VecF64 = std::vector<double>;
+  using VecStr = std::vector<std::string>;
+}; // struct data_t
 
 enum permission_t { Show, Advan, Hide, Fixed };
 
@@ -90,16 +90,11 @@ struct item_infos {
   }
 };
 
-// template <typename Test, template <typename...> class Ref>
-// struct is_specialization : std::false_type {};
-// template <template <typename...> class Ref, typename... Args>
-// struct is_specialization<Ref<Args...>, Ref> : std::true_type {};
-
-class item_base {
+class value_base {
 public:
-  item_base() : root_(std::make_shared<json>()) { ptr_ = root_.get(); }
-  item_base(const item_base &other) = default;
-  explicit item_base(std::shared_ptr<json> root, json *ptr = nullptr)
+  value_base() : root_(std::make_shared<json>()) { ptr_ = root_.get(); }
+  value_base(const value_base &other) = default;
+  explicit value_base(std::shared_ptr<json> root, json *ptr = nullptr)
       : root_(std::move(root)), ptr_(ptr) {
     if (nullptr == ptr_) {
       ptr_ = root_.get();
@@ -108,11 +103,26 @@ public:
 
   template <typename Dtype>
   Dtype as() const {
-    static_assert(std::is_base_of_v<item_base, Dtype>,
-                  "item_base only can be convert to derived type of "
-                  "confgen::detail::item_base");
+    static_assert(std::is_base_of_v<value_base, Dtype>,
+                  "value_base only can be convert to derived type of "
+                  "confgen::detail::value_base");
     return Dtype(root_, ptr_);
   }
+
+  CFG_NO_DISCARD const json &get_json() const { return *ptr_; }
+  json &get_json() { return *ptr_; }
+
+  friend void to_json(json &j, const value_base &t) { j = *t.ptr_; }
+  friend void from_json(const json &j, value_base &t) { *t.ptr_ = j; }
+
+protected:
+  std::shared_ptr<json> root_;
+  json *ptr_;
+};
+
+class item_base : public value_base {
+public:
+  using value_base::value_base;
 
 #define CFG_ITEM_COMMON_INTERFACE(type, name)                                  \
   CFG_NO_DISCARD CFG_INLINE type name() const {                                \
@@ -128,16 +138,6 @@ public:
   CFG_ITEM_COMMON_INTERFACE(json, ctrl_info)
 
 #undef CFG_ITEM_COMMON_INTERFACE
-
-  CFG_NO_DISCARD const json &get_json() const { return *ptr_; }
-  json &get_json() { return *ptr_; }
-
-  friend void to_json(json &j, const item_base &t) { j = *t.ptr_; }
-  friend void from_json(const json &j, item_base &t) { *t.ptr_ = j; }
-
-protected:
-  std::shared_ptr<json> root_;
-  json *ptr_;
 };
 
 template <typename Dtype>
@@ -175,6 +175,7 @@ public:
     return (*ptr_).contains(const_keys::value);
   }
 };
+
 #define CFG_ITEM_CONSTRUCT(meta_type)                                          \
   item(int index,                                                              \
        const std::string &data_type,                                           \
@@ -204,6 +205,7 @@ template <>
 class item<Check, bool> : public detail::item_with_gsetter<bool> {
 public:
   using value_type = bool;
+  using detail::item_with_gsetter<value_type>::item_with_gsetter;
 
   item(int index,
        const std::string &data_type,
@@ -224,6 +226,7 @@ template <typename Dtype>
 class item<Input, Dtype> : public detail::item_with_gsetter<Dtype> {
 public:
   using value_type = Dtype;
+  using detail::item_with_gsetter<value_type>::item_with_gsetter;
 
   static_assert(std::is_same_v<value_type, data_t::Int> ||
                     std::is_same_v<value_type, data_t::F64>,
@@ -255,6 +258,7 @@ class item<String, data_t::Str>
     : public detail::item_with_gsetter<data_t::Str> {
 public:
   using value_type = data_t::Str;
+  using detail::item_with_gsetter<value_type>::item_with_gsetter;
   struct ctrl {
     value_type regex;
 
@@ -283,6 +287,7 @@ public:
                 "Select type only support data type `Int`, `F64` and `Str`");
 
   using value_type = Dtype;
+  using detail::item_with_gsetter<value_type>::item_with_gsetter;
 
   struct ctrl_item {
     value_type value;
@@ -319,6 +324,7 @@ public:
                 "Select type only support data type `VecInt` and `VecF64`.");
 
   using value_type = Dtype;
+  using detail::item_with_gsetter<value_type>::item_with_gsetter;
 
   struct ctrl {
     typename value_type::value_type l0, r0, l1, r1; // left-0 to right-1.
@@ -372,6 +378,7 @@ public:
 
   using value_type = Dtype;
   using ctrl = typename ctrl_map<Dtype>::type;
+  using detail::item_with_gsetter<value_type>::item_with_gsetter;
 
   CFG_ITEM_CONSTRUCT(Array) {}
   CFG_VALID_NEW_VALUE_FUNC()
@@ -393,6 +400,7 @@ public:
                 "confgen::detail::item_base");
 
   using value_type = Dtype;
+  using detail::item_base::item_base;
 
   item(int index,
        const std::string &data_type,
@@ -434,6 +442,7 @@ template <typename Dtype>
 class item<Refer, Dtype> : public detail::item_base {
 public:
   using value_type = Dtype;
+  using detail::item_base::item_base;
 
   item(int index,
        const std::string &data_type,

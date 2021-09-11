@@ -1,29 +1,15 @@
 #include <iostream>
+#include <utility>
 
 #include "catch2/catch_all.hpp"
-#include "nlohmann/json.hpp"
+#include "conf-gen/generator.hpp"
 
-struct item {
-  int val;
-  std::string name;
+// clang-format off
+CONF_GROUP(
+  test_conf_t, 
+  Input(F64, thresh, 1.8, Show, "is open", "open as default", {.min = 1, .max = 3, .step = 0.2 }), 
 
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(item, val, name)
-};
+);
+// clang-format on
 
-TEST_CASE("test_case", "[temp]") {
-  CHECK(true);
-  nlohmann::json j;
-
-  std::vector<item> items{{.val = 1, .name = "123"}, {2, "567ga"}};
-
-  j = items;
-
-  struct empty_type {};
-
-  j = empty_type();
-
-  std::cout << j.size() << std::endl;
-  std::cout << j.get<std::vector<item>>().at(0).name << std::endl;
-
-  std::cout << nlohmann::json(items) << std::endl;
-}
+TEST_CASE("test_case", "[temp]") { CHECK(true); }

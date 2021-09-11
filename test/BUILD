@@ -5,7 +5,7 @@ cc_test(
     ],
     visibility = ["//:__pkg__"],
     deps = [
+        "//:confgen",
         "@com_github_catchorg_catch2//:catch2_main",
-        "@com_github_nlohmann_json//:json",
     ],
 )

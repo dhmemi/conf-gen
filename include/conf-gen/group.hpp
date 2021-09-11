@@ -9,15 +9,17 @@
 
 namespace confgen {
 
-class group : public detail::item_base {
+class group : public detail::value_base {
 public:
-  using detail::item_base::item_base;
+  using detail::value_base::value_base;
 
   template <typename Dtype>
   bool set(const std::string &name, const Dtype &val);
 
   template <typename Dtype>
-  Dtype get(const std::string &name, const Dtype &fallback = {});
+  Dtype get(const std::string &name, const Dtype &fallback = {}) const;
+
+  CFG_NO_DISCARD json *get_ptr(const std::string &path) const;
 
   detail::item_base at(std::string &name);
 

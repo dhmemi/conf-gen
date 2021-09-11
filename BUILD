@@ -8,6 +8,8 @@ cc_library(
         "include/conf-gen/group.hpp",
         "include/conf-gen/items.hpp",
     ],
+    includes = ["include"],
+    visibility = ["//visibility:public"],
     deps = [
         "@com_github_nlohmann_json//:json",
     ],
