@@ -56,7 +56,7 @@ enum meta_t {
 namespace detail {
 
 template <typename Dtype>
-bool equal(const Dtype &a, const Dtype &b) {
+inline bool equal(const Dtype &a, const Dtype &b) {
   return a == b;
 }
 
@@ -68,6 +68,16 @@ inline bool equal(const float &a, const float &b) {
 template <>
 inline bool equal(const double &a, const double &b) {
   return fabs(a - b) < 1e-8;
+}
+
+template <typename Dtype>
+inline std::string to_string(const Dtype &a) {
+  return std::to_string(a);
+}
+
+template <>
+inline std::string to_string(const std::string &a) {
+  return a;
 }
 
 struct item_infos {
@@ -178,9 +188,9 @@ public:
 
 #define CFG_ITEM_CONSTRUCT(meta_type)                                          \
   item(int index,                                                              \
+       permission_t permission,                                                \
        const std::string &data_type,                                           \
        const value_type &value,                                                \
-       const permission_t &permission,                                         \
        const std::string &name,                                                \
        const std::string &comment,                                             \
        const ctrl &ctrl_info)                                                  \
@@ -208,9 +218,9 @@ public:
   using detail::item_with_gsetter<value_type>::item_with_gsetter;
 
   item(int index,
+       permission_t permission,
        const std::string &data_type,
        const value_type &value,
-       const permission_t &permission,
        const std::string &name,
        const std::string &comment)
       : detail ::item_with_gsetter<value_type>(
@@ -292,10 +302,19 @@ public:
   struct ctrl_item {
     value_type value;
     std::string name;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(ctrl_item, name, value)
+
+    friend void to_json(nlohmann ::json &j, const ctrl_item &t) {
+      j["name"] = t.name.empty() ? detail::to_string(t.value) : t.name;
+      j["value"] = t.value;
+    }
+    friend void from_json(const nlohmann ::json &j, ctrl_item &t) {
+      j.at("name").get_to(t.name);
+      j.at("value").get_to(t.value);
+    }
   };
 
   struct ctrl : public std::vector<ctrl_item> {
+    using std::vector<ctrl_item>::vector;
     CFG_NO_DISCARD bool valid(const value_type &value) const {
       return std::any_of(
           this->begin(), this->end(), [value](const ctrl_item &choice) {
@@ -381,7 +400,18 @@ public:
   using detail::item_with_gsetter<value_type>::item_with_gsetter;
 
   CFG_ITEM_CONSTRUCT(Array) {}
-  CFG_VALID_NEW_VALUE_FUNC()
+
+  CFG_NO_DISCARD CFG_INLINE bool
+  is_new_value_valid(const value_type &value) const override {
+    const auto &ctrls =
+        (*this->ptr_).at(const_keys::ctrl_info).template get<ctrl>();
+    return std::all_of(
+        value.begin(),
+        value.end(),
+        [ctrls](const typename value_type::value_type &single_val) {
+          return ctrls.valid(single_val);
+        });
+  }
 
   CFG_NO_DISCARD CFG_INLINE bool is_store_value_valid() const override {
     if (!detail::item_with_gsetter<value_type>::is_store_value_valid()) {
@@ -403,9 +433,9 @@ public:
   using detail::item_base::item_base;
 
   item(int index,
+       permission_t permission,
        const std::string &data_type,
        const value_type &value,
-       const permission_t &permission,
        const std::string &name,
        const std::string &comment) {
     *this->ptr_ =
@@ -445,9 +475,9 @@ public:
   using detail::item_base::item_base;
 
   item(int index,
+       permission_t permission,
        const std::string &data_type,
        const std::string &ref_path,
-       const permission_t &permission,
        const std::string &name,
        const std::string &comment) {
     *this->ptr_ =

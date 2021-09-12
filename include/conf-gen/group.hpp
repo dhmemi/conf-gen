@@ -19,11 +19,15 @@ public:
   template <typename Dtype>
   Dtype get(const std::string &name, const Dtype &fallback = {}) const;
 
-  CFG_NO_DISCARD json *get_ptr(const std::string &path) const;
+  CFG_NO_DISCARD json *find_ptr(const std::string &name) const {
+    return &(*ptr_).at(name);
+  }
 
   detail::item_base at(std::string &name);
 
-  bool have_enable_item();
+  CFG_NO_DISCARD CFG_INLINE bool have_enable_item() const {
+    return ptr_->contains("enable");
+  }
 
   CFG_NO_DISCARD CFG_INLINE size_t size() const { return ptr_->size(); }
 
