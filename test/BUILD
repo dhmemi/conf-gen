@@ -1,7 +1,7 @@
 cc_test(
     name = "all_catch2_cases",
     srcs = [
-        "base_test.cpp",
+        "test_getter_setter.cpp",
     ],
     visibility = ["//:__pkg__"],
     deps = [

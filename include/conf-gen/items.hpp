@@ -110,7 +110,7 @@ struct basic_info_t {
 template <typename ValueType, typename CtrlType>
 struct ctrl_info_t {
   ValueType value; // no need to serialize to json
-  permission_t permission;
+  permission_t permission{Show};
   std::string name;
   CtrlType ctrl;
   std::string comment;
@@ -126,7 +126,7 @@ struct ctrl_info_t {
 template <typename ValueType>
 struct ctrl_info_t<ValueType, void> {
   ValueType value; // no need to serialize to json
-  permission_t permission;
+  permission_t permission{Show};
   std::string name;
   std::string comment;
 
@@ -442,7 +442,7 @@ public:
       return false;
     }
     const json &val = (*this->ptr_).at(detail::key_ns::k_value);
-    return val.is_array() && val.size() == 2;
+    return val.is_array();
   }
 };
 

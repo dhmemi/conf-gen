@@ -23,7 +23,7 @@
 TEST_CASE("Check getter and setter", "[Check][getter][setter]") {
 
   CONF_GROUP(test_conf_t,
-             Check(Bool, open, false, Show, "is open", "open as default"), );
+             Check(Bool, open, false, Show, "is open", "open as default"));
 
   test_conf_t conf;
   CHECK_FALSE(conf.get_open());
@@ -35,7 +35,7 @@ TEST_CASE("Input getter and setter", "[Input][getter][setter]") {
   // clang-format off
   CONF_GROUP(test_conf_t,
              Input(Int, thresh, 5, Show, "threshold", {.min = 1, .max = 9, .step = 2}),
-             Input(F64, rate, 0.5, Hide, "rate", {0, 1, 0.05}, "this is some annotation."), );
+             Input(F64, rate, 0.5, Hide, "rate", {0, 1, 0.05}, "this is some annotation."));
   // clang-format on
 
   test_conf_t conf;
@@ -82,7 +82,7 @@ TEST_CASE("String getter and setter", "[String][getter][setter]") {
 
   const std::string default_str = "12345";
   CONF_GROUP(test_conf_t,
-             String(Str, path, "12345", Show, "path", {.regex = "^[0-9]*$"}), );
+             String(Str, path, "12345", Show, "path", {.regex = "^[0-9]*$"}));
 
   test_conf_t conf;
   CHECK(conf.get_path() == default_str);
@@ -99,7 +99,7 @@ TEST_CASE("Range getter and setter", "[Range][getter][setter]") {
   // clang-format off
   CONF_GROUP(test_conf_t,
              Range(VecInt, thresh, {10, 160}, Show, "threshold", {.l0 = 0, .r0 =128, .l1 = 128, .r1 = 255}), 
-             Range(VecF64, rate, {0.2, 0.8}, Show, "rate", {0., 1., 0., 1.}), );
+             Range(VecF64, rate, {0.2, 0.8}, Show, "rate", {0., 1., 0., 1.}));
   // clang-format on
 
   using vec_int_t = std::vector<int>;
@@ -157,7 +157,7 @@ TEST_CASE("Select getter and setter") {
                     .permission = Show,
                     .name = "kernal",
                     .ctrl = {{1}, {100}, {999}},
-                    .comment = "any comment"), );
+                    .comment = "any comment, maybe a long string."));
 
   test_conf_t conf;
 
@@ -174,9 +174,64 @@ TEST_CASE("Select getter and setter") {
 TEST_CASE("Array getter and setter") {
   CONF_GROUP(test_conf_t,
              Array(VecF64,
-                   val_list,
-                   {1.0, 1.5, 3.5},
-                   Advan,
-                   "kernal",
-                   {.min = 0, .max = 10., .step = 0.1}), );
+                   f64_list,
+                   .value = {1.0, 1.5, 3.5},
+                   .permission = Advan,
+                   .name = "kernal",
+                   .ctrl = {.min = 0., .max = 10., .step = 0.1}),
+             Array(VecStr,
+                   str_list,
+                   .value = {"abcderf"},
+                   .permission = Show,
+                   .name = "str list",
+                   .ctrl = {.regex = "^[A-Za-z]+$"}));
+
+  test_conf_t conf;
+
+  using vec_f64_t = std::vector<double>;
+  using vec_str_t = std::vector<std::string>;
+
+  SECTION("double array: invalid values will be refused.") {
+    auto origin_val = conf.get_f64_list();
+    auto invalid_val =
+        // NOLINTNEXTLINE(google-build-using-namespace)
+        GENERATE(vec_f64_t{0, 1.2, 1.03},
+                 vec_f64_t{0, 10.2, 1.3, 0.8},
+                 vec_f64_t{-0.1, 1.2, 0.9, 2.4});
+    CHECK_FALSE(conf.set_f64_list(invalid_val));
+    CHECK(conf.get_f64_list() == origin_val);
+  }
+
+  SECTION("double array: valid values will be accepted.") {
+    auto valid_val =
+        // NOLINTNEXTLINE(google-build-using-namespace)
+        GENERATE(vec_f64_t{0, 1.2, 1.3},
+                 vec_f64_t{0, 10., 1.3, 0.8},
+                 vec_f64_t{0.1, 1.2, 0.9, 2.4});
+    CHECK(conf.set_f64_list(valid_val));
+    CHECK(conf.get_f64_list() == valid_val);
+  }
+
+  SECTION("string array: invalid values will be refused.") {
+    auto origin_val = conf.get_str_list();
+    auto invalid_val =
+        // NOLINTNEXTLINE(google-build-using-namespace)
+        GENERATE(vec_str_t{"qweerefsdvsd.", "qwe"},
+                 vec_str_t{"12VSBzdasvv"},
+                 vec_str_t{"VSBz dasvv", "abcdefGH"},
+                 vec_str_t{"tyuiolKMN", "cfdvbMM", "(asddfdf)"});
+    CHECK_FALSE(conf.set_str_list(invalid_val));
+    CHECK(conf.get_str_list() == origin_val);
+  }
+
+  SECTION("string array: valid values will be accepted.") {
+    auto valid_val =
+        // NOLINTNEXTLINE(google-build-using-namespace)
+        GENERATE(vec_str_t{"qweerefsdvsdp", "qwe"},
+                 vec_str_t{"AAVSBzdasvv"},
+                 vec_str_t{"VSBzOdasvv", "abcdefGH"},
+                 vec_str_t{"tyuiolKMN", "cfdvbMM", "asddfdf"});
+    CHECK(conf.set_str_list(valid_val));
+    CHECK(conf.get_str_list() == valid_val);
+  }
 }
