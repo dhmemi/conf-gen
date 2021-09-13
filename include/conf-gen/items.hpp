@@ -45,17 +45,6 @@ struct data_t {
 
 enum permission_t { Show, Advan, Hide, Fixed };
 
-namespace const_keys {
-const std::string name = "name";
-const std::string value = "value";
-const std::string data_type = "dtype";
-const std::string index = "index";
-const std::string comment = "comment";
-const std::string premission = "premission";
-const std::string meta_type = "mtype";
-const std::string ctrl_info = "ctrls";
-} // namespace const_keys
-
 enum meta_t {
   Check = 10,  // bool
   Input = 11,  // int, double
@@ -70,6 +59,17 @@ enum meta_t {
 };
 
 namespace detail {
+
+namespace key_ns {
+const std::string k_name = "name";
+const std::string k_value = "value";
+const std::string k_data_type = "dtype";
+const std::string k_index = "index";
+const std::string k_comment = "comment";
+const std::string k_premission = "premission";
+const std::string k_meta_type = "mtype";
+const std::string k_ctrl_info = "ctrls";
+} // namespace key_ns
 
 template <typename Dtype>
 inline bool equal(const Dtype &a, const Dtype &b) {
@@ -96,23 +96,44 @@ inline std::string to_string(const std::string &a) {
   return a;
 }
 
-struct item_infos {
-  const int index;
-  const std::string &data_type;
-  const meta_t &meta_type;
-  const permission_t &premission;
-  const std::string &name;
-  const std::string &comment;
+struct basic_info_t {
+  int index;
+  meta_t meta_type;
+  std::string data_type;
+  friend void to_json(nlohmann ::json &j, const basic_info_t &t) {
+    j[detail::key_ns::k_index] = t.index;
+    j[detail::key_ns::k_meta_type] = t.meta_type;
+    j[detail::key_ns::k_data_type] = t.data_type;
+  }
+};
 
-  CFG_INLINE CFG_NO_DISCARD json to_json() const {
-    json item;
-    item[const_keys::name] = name;
-    item[const_keys::data_type] = data_type;
-    item[const_keys::meta_type] = meta_type;
-    item[const_keys::index] = index;
-    item[const_keys::premission] = premission;
-    item[const_keys::comment] = comment;
-    return item;
+template <typename ValueType, typename CtrlType>
+struct ctrl_info_t {
+  ValueType value; // no need to serialize to json
+  permission_t permission;
+  std::string name;
+  CtrlType ctrl;
+  std::string comment;
+
+  friend void to_json(nlohmann ::json &j, const ctrl_info_t &t) {
+    j[detail::key_ns::k_premission] = t.permission;
+    j[detail::key_ns::k_name] = t.name;
+    j[detail::key_ns::k_ctrl_info] = t.ctrl;
+    j[detail::key_ns::k_comment] = t.comment;
+  }
+};
+
+template <typename ValueType>
+struct ctrl_info_t<ValueType, void> {
+  ValueType value; // no need to serialize to json
+  permission_t permission;
+  std::string name;
+  std::string comment;
+
+  friend void to_json(nlohmann ::json &j, const ctrl_info_t &t) {
+    j[detail::key_ns::k_premission] = t.permission;
+    j[detail::key_ns::k_name] = t.name;
+    j[detail::key_ns::k_comment] = t.comment;
   }
 };
 
@@ -152,7 +173,7 @@ public:
 
 #define CFG_ITEM_COMMON_INTERFACE(type, name)                                  \
   CFG_NO_DISCARD CFG_INLINE type name() const {                                \
-    return ptr_->at(const_keys::name).get<type>();                             \
+    return ptr_->at(detail::key_ns::k_name).get<type>();                       \
   }
 
   CFG_ITEM_COMMON_INTERFACE(int, index)
@@ -171,23 +192,23 @@ class item_with_gsetter : public item_base {
 public:
   using item_base::item_base;
   item_with_gsetter(const Dtype &value,
-                    const item_infos &infos,
-                    const json &ctrl_info = {}) {
-    *ptr_ = infos.to_json();
-    (*ptr_)[const_keys::ctrl_info] = ctrl_info;
+                    const json &basic_info,
+                    const json &ctrl_info) {
+    *ptr_ = basic_info;
+    ptr_->merge_patch(ctrl_info);
     assert(set(value));
   }
 
   Dtype get(const Dtype &fallback = {}) {
     if (is_store_value_valid()) {
-      return (*ptr_).at(const_keys::value).get<Dtype>();
+      return (*ptr_).at(detail::key_ns::k_value).get<Dtype>();
     }
     return fallback;
   }
 
   CFG_NO_DISCARD bool set(const Dtype &value) {
     if (is_new_value_valid(value)) {
-      (*ptr_)[const_keys::value] = value;
+      (*ptr_)[detail::key_ns::k_value] = value;
       return true;
     }
     return false;
@@ -198,28 +219,20 @@ public:
   }
 
   CFG_NO_DISCARD virtual bool is_store_value_valid() const {
-    return (*ptr_).contains(const_keys::value);
+    return (*ptr_).contains(detail::key_ns::k_value);
   }
 };
 
-#define CFG_ITEM_CONSTRUCT(meta_type)                                          \
-  item(int index,                                                              \
-       permission_t permission,                                                \
-       const std::string &data_type,                                           \
-       const value_type &value,                                                \
-       const std::string &name,                                                \
-       const std::string &comment,                                             \
-       const ctrl &ctrl_info)                                                  \
-      : detail ::item_with_gsetter<value_type>(                                \
-            value,                                                             \
-            {index, data_type, meta_type, permission, name, comment},          \
-            ctrl_info)
+#define CFG_ITEM_CONSTRUCT()                                                   \
+  item(const detail::basic_info_t &basic,                                      \
+       const detail::ctrl_info_t<value_type, ctrl_t> &ctrl)                    \
+      : detail::item_with_gsetter<value_type>(ctrl.value, basic, ctrl)
 
 #define CFG_VALID_NEW_VALUE_FUNC()                                             \
   CFG_NO_DISCARD CFG_INLINE bool is_new_value_valid(const value_type &value)   \
       const override {                                                         \
-    const json &ctrls = (*this->ptr_).at(const_keys::ctrl_info);               \
-    return ctrls.get<ctrl>().valid(value);                                     \
+    const json &ctrls = (*this->ptr_).at(detail::key_ns::k_ctrl_info);         \
+    return ctrls.get<ctrl_t>().valid(value);                                   \
   }
 
 } // namespace detail
@@ -233,18 +246,13 @@ public:
   using value_type = bool;
   using detail::item_with_gsetter<value_type>::item_with_gsetter;
 
-  item(int index,
-       permission_t permission,
-       const std::string &data_type,
-       const value_type &value,
-       const std::string &name,
-       const std::string &comment)
-      : detail ::item_with_gsetter<value_type>(
-            value, {index, data_type, Check, permission, name, comment}) {}
+  using ctrl_t = void;
+
+  CFG_ITEM_CONSTRUCT() {}
 
   CFG_NO_DISCARD CFG_INLINE bool is_store_value_valid() const override {
     return detail::item_with_gsetter<value_type>::is_store_value_valid() &&
-           (*ptr_).at(const_keys::value).is_boolean();
+           (*ptr_).at(detail::key_ns::k_value).is_boolean();
   }
 };
 
@@ -257,7 +265,7 @@ public:
   static_assert(std::is_same_v<value_type, data_t::Int> ||
                     std::is_same_v<value_type, data_t::F64>,
                 "Input type only support data type `Int` or `F64`");
-  struct ctrl {
+  struct ctrl_t {
     value_type min, max, step;
 
     CFG_INLINE bool valid(const value_type &value) const {
@@ -267,15 +275,15 @@ public:
       }());
     }
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(ctrl, min, max, step)
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(ctrl_t, min, max, step)
   };
 
-  CFG_ITEM_CONSTRUCT(Input) {}
+  CFG_ITEM_CONSTRUCT() {}
   CFG_VALID_NEW_VALUE_FUNC()
 
   CFG_NO_DISCARD CFG_INLINE bool is_store_value_valid() const override {
     return detail::item_with_gsetter<value_type>::is_store_value_valid() &&
-           (*this->ptr_).at(const_keys::value).is_number();
+           (*this->ptr_).at(detail::key_ns::k_value).is_number();
   }
 };
 
@@ -285,22 +293,22 @@ class item<String, data_t::Str>
 public:
   using value_type = data_t::Str;
   using detail::item_with_gsetter<value_type>::item_with_gsetter;
-  struct ctrl {
+  struct ctrl_t {
     value_type regex;
 
     CFG_NO_DISCARD CFG_INLINE bool valid(const value_type &value) const {
       return std::regex_match(value, std::regex(regex));
     }
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(ctrl, regex)
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(ctrl_t, regex)
   };
 
-  CFG_ITEM_CONSTRUCT(String) {}
+  CFG_ITEM_CONSTRUCT() {}
   CFG_VALID_NEW_VALUE_FUNC()
 
   CFG_NO_DISCARD CFG_INLINE bool is_store_value_valid() const override {
     return detail::item_with_gsetter<value_type>::is_store_value_valid() &&
-           (*this->ptr_).at(const_keys::value).is_string();
+           (*this->ptr_).at(detail::key_ns::k_value).is_string();
   }
 };
 
@@ -329,7 +337,7 @@ public:
     }
   };
 
-  struct ctrl : public std::vector<ctrl_item> {
+  struct ctrl_t : public std::vector<ctrl_item> {
     using std::vector<ctrl_item>::vector;
     CFG_NO_DISCARD bool valid(const value_type &value) const {
       return std::any_of(
@@ -339,14 +347,14 @@ public:
     }
   };
 
-  CFG_ITEM_CONSTRUCT(Select) {}
+  CFG_ITEM_CONSTRUCT() {}
   CFG_VALID_NEW_VALUE_FUNC()
 
   CFG_NO_DISCARD CFG_INLINE bool is_store_value_valid() const override {
     if (!detail::item_with_gsetter<value_type>::is_store_value_valid()) {
       return false;
     }
-    const json &val = (*this->ptr_).at(const_keys::value);
+    const json &val = (*this->ptr_).at(detail::key_ns::k_value);
     return val.is_number() || val.is_string();
   }
 };
@@ -361,9 +369,9 @@ public:
   using value_type = Dtype;
   using detail::item_with_gsetter<value_type>::item_with_gsetter;
 
-  struct ctrl {
+  struct ctrl_t {
     typename value_type::value_type l0, r0, l1, r1; // left-0 to right-1.
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(ctrl, l0, r0, l1, r1)
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(ctrl_t, l0, r0, l1, r1)
 
     CFG_NO_DISCARD CFG_INLINE bool valid(const value_type &value) const {
       return value.size() == 2 && value.at(0) >= l0 && value.at(0) <= r0 &&
@@ -371,14 +379,14 @@ public:
     }
   };
 
-  CFG_ITEM_CONSTRUCT(Range) {}
+  CFG_ITEM_CONSTRUCT() {}
   CFG_VALID_NEW_VALUE_FUNC()
 
   CFG_NO_DISCARD CFG_INLINE bool is_store_value_valid() const override {
     if (!detail::item_with_gsetter<value_type>::is_store_value_valid()) {
       return false;
     }
-    const json &val = (*this->ptr_).at(const_keys::value);
+    const json &val = (*this->ptr_).at(detail::key_ns::k_value);
     return val.is_array() && val.size() == 2;
   }
 };
@@ -391,17 +399,17 @@ private:
 
   template <>
   struct ctrl_map<data_t::VecInt> {
-    using type = item<Input, data_t::Int>::ctrl;
+    using type = item<Input, data_t::Int>::ctrl_t;
   };
 
   template <>
   struct ctrl_map<data_t::VecF64> {
-    using type = item<Input, data_t::F64>::ctrl;
+    using type = item<Input, data_t::F64>::ctrl_t;
   };
 
   template <>
   struct ctrl_map<data_t::VecStr> {
-    using type = item<String, data_t::Str>::ctrl;
+    using type = item<String, data_t::Str>::ctrl_t;
   };
 
 public:
@@ -412,15 +420,15 @@ public:
                 "and `VecStr`.");
 
   using value_type = Dtype;
-  using ctrl = typename ctrl_map<Dtype>::type;
+  using ctrl_t = typename ctrl_map<Dtype>::type;
   using detail::item_with_gsetter<value_type>::item_with_gsetter;
 
-  CFG_ITEM_CONSTRUCT(Array) {}
+  CFG_ITEM_CONSTRUCT() {}
 
   CFG_NO_DISCARD CFG_INLINE bool
   is_new_value_valid(const value_type &value) const override {
     const auto &ctrls =
-        (*this->ptr_).at(const_keys::ctrl_info).template get<ctrl>();
+        (*this->ptr_).at(detail::key_ns::k_ctrl_info).template get<ctrl_t>();
     return std::all_of(
         value.begin(),
         value.end(),
@@ -433,7 +441,7 @@ public:
     if (!detail::item_with_gsetter<value_type>::is_store_value_valid()) {
       return false;
     }
-    const json &val = (*this->ptr_).at(const_keys::value);
+    const json &val = (*this->ptr_).at(detail::key_ns::k_value);
     return val.is_array() && val.size() == 2;
   }
 };
@@ -447,30 +455,25 @@ public:
 
   using value_type = Dtype;
   using detail::item_base::item_base;
+  using ctrl_t = void;
 
-  item(int index,
-       permission_t permission,
-       const std::string &data_type,
-       const value_type &value,
-       const std::string &name,
-       const std::string &comment) {
-    *this->ptr_ =
-        detail::item_infos{index, data_type, Group, permission, name, comment}
-            .to_json();
-    (*this->ptr_)[const_keys::ctrl_info] = {};
-    assert(set(value));
+  item(const detail ::basic_info_t &basic,
+       const detail ::ctrl_info_t<value_type, ctrl_t> &ctrl) {
+    *ptr_ = basic;
+    ptr_->merge_patch(ctrl);
+    assert(set(ctrl.value));
   }
 
   Dtype get(const Dtype &fallback = {}) {
     if (!is_store_value_valid()) {
       set(fallback);
     }
-    return Dtype(this->root_, &(*ptr_)[const_keys::value]);
+    return Dtype(this->root_, &(*ptr_)[detail::key_ns::k_value]);
   }
 
   CFG_NO_DISCARD bool set(const Dtype &value) {
     if (is_new_value_valid(value)) {
-      (*ptr_)[const_keys::value] = value;
+      (*ptr_)[detail::key_ns::k_value] = value;
       return true;
     }
     return false;
@@ -479,8 +482,8 @@ public:
   CFG_NO_DISCARD bool is_new_value_valid(const Dtype &) const { return true; }
 
   CFG_NO_DISCARD bool is_store_value_valid() const {
-    return ptr_->contains(const_keys::value) &&
-           ptr_->at(const_keys::value).is_object();
+    return ptr_->contains(detail::key_ns::k_value) &&
+           ptr_->at(detail::key_ns::k_value).is_object();
   }
 };
 
@@ -489,18 +492,13 @@ class item<Refer, Dtype> : public detail::item_base {
 public:
   using value_type = Dtype;
   using detail::item_base::item_base;
+  using ctrl_t = void;
 
-  item(int index,
-       permission_t permission,
-       const std::string &data_type,
-       const std::string &ref_path,
-       const std::string &name,
-       const std::string &comment) {
-    *this->ptr_ =
-        detail::item_infos{index, data_type, Group, permission, name, comment}
-            .to_json();
-    (*this->ptr_)[const_keys::ctrl_info] = {};
-    (*ptr_)[const_keys::value] = ref_path;
+  item(const detail ::basic_info_t &basic,
+       const detail ::ctrl_info_t<std::string, ctrl_t> &ctrl) {
+    *ptr_ = basic;
+    ptr_->merge_patch(ctrl);
+    assert(set(ctrl.value));
   }
 
   Dtype get(const Dtype &fallback = {}) {

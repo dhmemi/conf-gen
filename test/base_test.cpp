@@ -23,7 +23,7 @@
 TEST_CASE("Check getter and setter", "[Check][getter][setter]") {
 
   CONF_GROUP(test_conf_t,
-             Check(Show, Bool, open, false, "is open", "open as default"), );
+             Check(Bool, open, false, Show, "is open", "open as default"), );
 
   test_conf_t conf;
   CHECK_FALSE(conf.get_open());
@@ -32,10 +32,11 @@ TEST_CASE("Check getter and setter", "[Check][getter][setter]") {
 }
 
 TEST_CASE("Input getter and setter", "[Input][getter][setter]") {
-
+  // clang-format off
   CONF_GROUP(test_conf_t,
-             Input(Show, Int, thresh, 5, "threshold", "", {1, 9, 2}),
-             Input(Hide, F64, rate, 0.5, "rate", "any info", {0, 1, 0.05}), );
+             Input(Int, thresh, 5, Show, "threshold", {.min = 1, .max = 9, .step = 2}),
+             Input(F64, rate, 0.5, Hide, "rate", {0, 1, 0.05}, "this is some annotation."), );
+  // clang-format on
 
   test_conf_t conf;
   CHECK(conf.get_thresh() == 5);
@@ -80,9 +81,8 @@ TEST_CASE("Input getter and setter", "[Input][getter][setter]") {
 TEST_CASE("String getter and setter", "[String][getter][setter]") {
 
   const std::string default_str = "12345";
-  CONF_GROUP(
-      test_conf_t,
-      String(Show, Str, path, "12345", "path", "", {.regex = "^[0-9]*$"}), );
+  CONF_GROUP(test_conf_t,
+             String(Str, path, "12345", Show, "path", {.regex = "^[0-9]*$"}), );
 
   test_conf_t conf;
   CHECK(conf.get_path() == default_str);
@@ -98,8 +98,8 @@ TEST_CASE("String getter and setter", "[String][getter][setter]") {
 TEST_CASE("Range getter and setter", "[Range][getter][setter]") {
   // clang-format off
   CONF_GROUP(test_conf_t,
-             Range(Show, VecInt, thresh, {10, 160}, "threshold", "", {.l0 = 0, .r0 =128, .l1 = 128, .r1 = 255}), 
-             Range(Show, VecF64, rate, {0.2, 0.8}, "rate", "", {0., 1., 0., 1.}), );
+             Range(VecInt, thresh, {10, 160}, Show, "threshold", {.l0 = 0, .r0 =128, .l1 = 128, .r1 = 255}), 
+             Range(VecF64, rate, {0.2, 0.8}, Show, "rate", {0., 1., 0., 1.}), );
   // clang-format on
 
   using vec_int_t = std::vector<int>;
@@ -151,7 +151,13 @@ TEST_CASE("Range getter and setter", "[Range][getter][setter]") {
 
 TEST_CASE("Select getter and setter") {
   CONF_GROUP(test_conf_t,
-             Select(Show, Int, kernal, 1, "kernal", "", {{1}, {100}, {999}}), );
+             Select(Int,
+                    kernal,
+                    .value = 1,
+                    .permission = Show,
+                    .name = "kernal",
+                    .ctrl = {{1}, {100}, {999}},
+                    .comment = "any comment"), );
 
   test_conf_t conf;
 
@@ -167,11 +173,10 @@ TEST_CASE("Select getter and setter") {
 
 TEST_CASE("Array getter and setter") {
   CONF_GROUP(test_conf_t,
-             Array(Advan,
-                   VecF64,
+             Array(VecF64,
                    val_list,
                    {1.0, 1.5, 3.5},
+                   Advan,
                    "kernal",
-                   "",
                    {.min = 0, .max = 10., .step = 0.1}), );
 }
