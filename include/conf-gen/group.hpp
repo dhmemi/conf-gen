@@ -29,13 +29,11 @@ class group : public detail::value_base {
 public:
   using detail::value_base::value_base;
 
-  template <typename Dtype>
-  bool set(const std::string &name, const Dtype &val);
-
-  template <typename Dtype>
-  Dtype get(const std::string &name, const Dtype &fallback = {}) const;
-
-  CFG_NO_DISCARD json *find_ptr(const std::string &name) const {
+  CFG_NO_DISCARD CFG_INLINE json *find_ptr(const std::string &name,
+                                           bool is_refer = false) const {
+    if (is_refer) {
+      return ptr_;
+    }
     return &(*ptr_).at(name);
   }
 

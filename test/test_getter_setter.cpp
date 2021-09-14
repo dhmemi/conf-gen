@@ -16,6 +16,7 @@
 
 #include <iostream>
 #include <utility>
+#include <vector>
 
 #include "catch2/catch_all.hpp"
 #include "conf-gen/generator.hpp"
@@ -34,7 +35,7 @@ TEST_CASE("Check getter and setter", "[Check][getter][setter]") {
 TEST_CASE("Input getter and setter", "[Input][getter][setter]") {
   // clang-format off
   CONF_GROUP(test_conf_t,
-             Input(Int, thresh, 5, Show, "threshold", {.min = 1, .max = 9, .step = 2}),
+             Input(Int, thresh, 5, Show, "threshold", {.ge = 1, .le = 9, .step = 2}),
              Input(F64, rate, 0.5, Hide, "rate", {0, 1, 0.05}, "this is some annotation."));
   // clang-format on
 
@@ -178,7 +179,7 @@ TEST_CASE("Array getter and setter") {
                    .value = {1.0, 1.5, 3.5},
                    .permission = Advan,
                    .name = "kernal",
-                   .ctrl = {.min = 0., .max = 10., .step = 0.1}),
+                   .ctrl = {.ge = 0., .le = 10., .step = 0.1}),
              Array(VecStr,
                    str_list,
                    .value = {"abcderf"},
@@ -233,5 +234,24 @@ TEST_CASE("Array getter and setter") {
                  vec_str_t{"tyuiolKMN", "cfdvbMM", "asddfdf"});
     CHECK(conf.set_str_list(valid_val));
     CHECK(conf.get_str_list() == valid_val);
+  }
+}
+
+TEST_CASE("Group getter and setter") {
+  // clang-format off
+  CONF_GROUP(test_group_t,
+             Check(Bool, enable, false, Show, "is open", "open as default"),
+             Input(Int, thresh, 5, Show, "threshold", {.ge = 1, .le = 9, .step = 2}),
+             Input(F64, rate, 0.5, Hide, "rate", {0, 1, 0.05}, "this is some annotation."));
+
+
+  CONF_GROUP(test_conf_t,  
+             Range(VecF64, rate, {0.2, 0.8}, Show, "rate", {0., 1., 0., 1.}),
+             Group(test_group_t, inner_group, {}, Show));
+  // clang-format on
+
+  test_conf_t conf;
+  SECTION("get value by chain") {
+    CHECK(conf.get_inner_group().get_thresh() == 5);
   }
 }

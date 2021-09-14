@@ -34,7 +34,9 @@
 #define CFG_INIT_META(Meta, Type, InName, ...)                                 \
   (*this->ptr_)[#InName] =                                                     \
       confgen::item<confgen::meta_t::Meta, confgen::data_t::Type>(             \
-          {++id, confgen::meta_t::Meta, #Type}, {__VA_ARGS__});
+          {++id, confgen::meta_t::Meta, #Type},                                \
+          {__VA_ARGS__},                                                       \
+          std::string{#InName});
 
 #define CFG_INIT_Check(...) CFG_T(CFG_INIT_META(Check, __VA_ARGS__))
 #define CFG_INIT_Input(...) CFG_T(CFG_INIT_META(Input, __VA_ARGS__))
@@ -44,15 +46,19 @@
 #define CFG_INIT_Array(...) CFG_T(CFG_INIT_META(Array, __VA_ARGS__))
 #define CFG_INIT_Enums(Type, ...) CFG_T(CFG_INIT_META(Select, Int, __VA_ARGS__))
 
-#define PMG_PARAM_INIT_Group(Type, InName, Value, ...)                         \
+#define CFG_INIT_Group(Type, InName, Value, ...)                               \
   (*this->ptr_)[#InName] = confgen::item<confgen::meta_t::Group, Type>(        \
-      {++id, confgen::meta_t::Group, "Group"}, {Type{}, __VA_ARGS__});
+      {++id, confgen::meta_t::Group, "Group"},                                 \
+      {Type{}, __VA_ARGS__},                                                   \
+      std::string{#InName});
 
-#define PMG_PARAM_INIT_Refer(Perm, Type, InName, ...)                          \
+#define CFG_INIT_Refer(Type, InName, ...)                                      \
   CFG_GEN_REFER_TYPE(Type, __cfg_refer_t_##InName);                            \
   (*this->ptr_)[#InName] =                                                     \
       confgen::item<confgen::meta_t::Refer, __cfg_refer_t_##InName::type>(     \
-          {++id, confgen::meta_t::Group, "Str"}, {__VA_ARGS__});
+          {++id, confgen::meta_t::Refer, "Str"},                               \
+          {__VA_ARGS__},                                                       \
+          std::string{#InName});
 
 /// getter and setter for common items.
 #define CFG_OPER_META(Meta, Type, InName, ...)                                 \
@@ -77,23 +83,34 @@
 #define CFG_OPER_Enums(Type, ...) CFG_T(CFG_OPER_META(Select, Int, __VA_ARGS__))
 
 #define CFG_OPER_Group(Type, InName, ...)                                      \
-  bool set_##InName(const Type &_val) { return set(#InName, _val); }           \
+  bool set_##InName(const Type &value) {                                       \
+    return confgen::item<confgen::meta_t::Group, Type>(root_,                  \
+                                                       find_ptr(#InName))      \
+        .set(value);                                                           \
+  }                                                                            \
   CFG_NO_DISCARD Type get_##InName(const Type &fallback = Type{}) const {      \
-    return get(#InName, fallback);                                             \
+    return confgen::item<confgen::meta_t::Group, Type>(root_,                  \
+                                                       find_ptr(#InName))      \
+        .get(fallback);                                                        \
   }
 
-#define CFG_OPER_Refer(Type, InName, ...)                                      \
+#define CFG_OPER_Refer(Type, InName, Value, ...)                               \
 private:                                                                       \
   CFG_GEN_REFER_TYPE(Type, __cfg_refer_t_##InName);                            \
                                                                                \
 public:                                                                        \
-  bool set_##InName(const __cfg_refer_t_##InName::type &_val) {                \
-    return set(#InName, _val);                                                 \
+  bool set_##InName(const __cfg_refer_t_##InName::type &value) {               \
+    return confgen::item<confgen::meta_t::Refer,                               \
+                         __cfg_refer_t_##InName::type>(                        \
+               root_, find_ptr(#InName, true))                                 \
+        .set<confgen::meta_t::Value>(value);                                   \
   }                                                                            \
-  __cfg_refer_t_##InName::type get_##InName(                                   \
-      const __cfg_refer_t_##InName::type &fallback =                           \
-          __cfg_refer_t_##InName::type{}) const {                              \
-    return get(#InName, fallback);                                             \
+  CFG_NO_DISCARD __cfg_refer_t_##InName::type get_##InName(                    \
+      const Type &fallback = __cfg_refer_t_##InName::type{}) const {           \
+    return confgen::item<confgen::meta_t::Group,                               \
+                         __cfg_refer_t_##InName::type>(                        \
+               root_, find_ptr(#InName, true))                                 \
+        .get<confgen::meta_t::Value>(fallback);                                \
   }
 
 // clang-format off
@@ -131,8 +148,9 @@ public:                                                                        \
     CFG_OPER_ALL(CFG_COUNT(__VA_ARGS__), __VA_ARGS__)                          \
     explicit Confgen(const confgen::group &cf_group)                           \
         : confgen::group(cf_group) {}                                          \
-    explicit Confgen(const std::shared_ptr<confgen::json> &j)                  \
-        : confgen::group(j) {}                                                 \
+    explicit Confgen(const std::shared_ptr<confgen::json> &j,                  \
+                     confgen::json *p = nullptr)                               \
+        : confgen::group(j, p) {}                                              \
   }
 
 #define CFG_INIT_1(P, ...) CFG_CONCAT(CFG_INIT_, P)

@@ -115,6 +115,13 @@ struct ctrl_info_t {
   CtrlType ctrl;
   std::string comment;
 
+  auto &set_inname(const std::string &inname) {
+    if (name.empty()) {
+      name = inname;
+    }
+    return (*this);
+  }
+
   friend void to_json(nlohmann ::json &j, const ctrl_info_t &t) {
     j[detail::key_ns::k_premission] = t.permission;
     j[detail::key_ns::k_name] = t.name;
@@ -129,6 +136,13 @@ struct ctrl_info_t<ValueType, void> {
   permission_t permission{Show};
   std::string name;
   std::string comment;
+
+  auto &set_inname(const std::string &inname) {
+    if (name.empty()) {
+      name = inname;
+    }
+    return (*this);
+  }
 
   friend void to_json(nlohmann ::json &j, const ctrl_info_t &t) {
     j[detail::key_ns::k_premission] = t.permission;
@@ -225,8 +239,10 @@ public:
 
 #define CFG_ITEM_CONSTRUCT()                                                   \
   item(const detail::basic_info_t &basic,                                      \
-       const detail::ctrl_info_t<value_type, ctrl_t> &ctrl)                    \
-      : detail::item_with_gsetter<value_type>(ctrl.value, basic, ctrl)
+       detail::ctrl_info_t<value_type, ctrl_t> ctrl,                           \
+       const std::string &inname = {})                                         \
+      : detail::item_with_gsetter<value_type>(                                 \
+            ctrl.value, basic, ctrl.set_inname(inname))
 
 #define CFG_VALID_NEW_VALUE_FUNC()                                             \
   CFG_NO_DISCARD CFG_INLINE bool is_new_value_valid(const value_type &value)   \
@@ -266,16 +282,16 @@ public:
                     std::is_same_v<value_type, data_t::F64>,
                 "Input type only support data type `Int` or `F64`");
   struct ctrl_t {
-    value_type min, max, step;
+    value_type ge, le, step;
 
     CFG_INLINE bool valid(const value_type &value) const {
-      return (min <= value && value <= max && [&value, this] {
-        double n = double(value - min) / step;
+      return (ge <= value && value <= le && [&value, this] {
+        double n = double(value - ge) / step;
         return detail::equal(round(n), n);
       }());
     }
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(ctrl_t, min, max, step)
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(ctrl_t, ge, le, step)
   };
 
   CFG_ITEM_CONSTRUCT() {}
@@ -449,7 +465,7 @@ public:
 template <typename Dtype>
 class item<Group, Dtype> : public detail::item_base {
 public:
-  static_assert(std::is_base_of_v<detail::item_base, Dtype>,
+  static_assert(std::is_base_of_v<detail::value_base, Dtype>,
                 "Group config's data type should be derived type of "
                 "confgen::detail::item_base");
 
@@ -458,15 +474,16 @@ public:
   using ctrl_t = void;
 
   item(const detail ::basic_info_t &basic,
-       const detail ::ctrl_info_t<value_type, ctrl_t> &ctrl) {
+       detail ::ctrl_info_t<value_type, ctrl_t> ctrl,
+       const std::string &inname = {}) {
     *ptr_ = basic;
-    ptr_->merge_patch(ctrl);
+    ptr_->merge_patch(ctrl.set_inname(inname));
     assert(set(ctrl.value));
   }
 
   Dtype get(const Dtype &fallback = {}) {
-    if (!is_store_value_valid()) {
-      set(fallback);
+    if (!is_store_value_valid() && !set(fallback)) {
+      return fallback;
     }
     return Dtype(this->root_, &(*ptr_)[detail::key_ns::k_value]);
   }
@@ -492,20 +509,25 @@ class item<Refer, Dtype> : public detail::item_base {
 public:
   using value_type = Dtype;
   using detail::item_base::item_base;
-  using ctrl_t = void;
+  struct ctrl_t {
+    std::string path;
+  };
 
   item(const detail ::basic_info_t &basic,
-       const detail ::ctrl_info_t<std::string, ctrl_t> &ctrl) {
+       detail ::ctrl_info_t<int, ctrl_t> ctrl,
+       const std::string &inname = {}) {
     *ptr_ = basic;
-    ptr_->merge_patch(ctrl);
-    assert(set(ctrl.value));
+    ptr_->merge_patch(ctrl.set_inname(inname));
+    (*ptr_)[detail::key_ns::k_value] = nullptr;
   }
 
+  template <meta_t RealMeta>
   Dtype get(const Dtype &fallback = {}) {
     // TODO() solver reference
     return fallback;
   }
 
+  template <meta_t RealMeta>
   CFG_NO_DISCARD bool set(const Dtype & /*value*/) {
     // TODO() solver reference
     return false;
