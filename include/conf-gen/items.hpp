@@ -96,6 +96,23 @@ inline std::string to_string(const std::string &a) {
   return a;
 }
 
+inline std::vector<std::string>
+split(const std::string &in, const std::string &delim, bool rm_empty) {
+  std::regex re{delim};
+
+  std::vector<std::string> vec{
+      std::sregex_token_iterator(in.begin(), in.end(), re, -1),
+      std::sregex_token_iterator()};
+  if (rm_empty) {
+    vec.erase(
+        std::remove_if(vec.begin(),
+                       vec.end(),
+                       [](const std::string &str) { return str.empty(); }),
+        vec.end());
+  }
+  return vec;
+}
+
 struct basic_info_t {
   int index;
   meta_t meta_type;
@@ -511,6 +528,7 @@ public:
   using detail::item_base::item_base;
   struct ctrl_t {
     std::string path;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(ctrl_t, path)
   };
 
   item(const detail ::basic_info_t &basic,
@@ -522,20 +540,35 @@ public:
   }
 
   template <meta_t RealMeta>
-  Dtype get(const Dtype &fallback = {}) {
-    // TODO() solver reference
-    return fallback;
+  Dtype get(const std::string &inname, const Dtype &fallback = {}) {
+    // std::cout << *resolve_ptr(inname);
+    return item<RealMeta, Dtype>(root_, resolve_ptr(inname)).get(fallback);
   }
 
   template <meta_t RealMeta>
-  CFG_NO_DISCARD bool set(const Dtype & /*value*/) {
-    // TODO() solver reference
-    return false;
+  CFG_NO_DISCARD bool set(const std::string &inname, const Dtype &value) {
+    return item<RealMeta, Dtype>(root_, resolve_ptr(inname)).set(value);
   }
 
-  CFG_NO_DISCARD bool is_new_value_valid(const Dtype &) const { return false; }
+private:
+  json *resolve_ptr(const std::string &inname) {
+    ctrl_t ctrl;
+    (*ptr_).at(inname).at(detail::key_ns::k_ctrl_info).get_to(ctrl);
+    if (ctrl.path.empty()) {
+      return nullptr;
+    }
 
-  CFG_NO_DISCARD bool is_store_value_valid() const { return false; }
+    auto names = detail::split(ctrl.path, "\\.", true);
+    json *item_ptr = ctrl.path.at(0) == '.' ? ptr_ : root_.get();
+    json *value_ptr = nullptr;
+
+    for (const auto &name : names) {
+      value_ptr = &(*item_ptr)[name];
+      item_ptr = &(*value_ptr)[detail::key_ns::k_value];
+    }
+
+    return value_ptr;
+  }
 };
 
 } // namespace confgen

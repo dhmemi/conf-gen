@@ -53,11 +53,11 @@
       std::string{#InName});
 
 #define CFG_INIT_Refer(Type, InName, ...)                                      \
-  CFG_GEN_REFER_TYPE(Type, __cfg_refer_t_##InName);                            \
+  CFG_GEN_REFER_TYPE(Type, cfg_refer_t_##InName);                              \
   (*this->ptr_)[#InName] =                                                     \
-      confgen::item<confgen::meta_t::Refer, __cfg_refer_t_##InName::type>(     \
+      confgen::item<confgen::meta_t::Refer, cfg_refer_t_##InName::type>(       \
           {++id, confgen::meta_t::Refer, "Str"},                               \
-          {__VA_ARGS__},                                                       \
+          {confgen::meta_t::__VA_ARGS__},                                      \
           std::string{#InName});
 
 /// getter and setter for common items.
@@ -96,21 +96,20 @@
 
 #define CFG_OPER_Refer(Type, InName, Value, ...)                               \
 private:                                                                       \
-  CFG_GEN_REFER_TYPE(Type, __cfg_refer_t_##InName);                            \
+  CFG_GEN_REFER_TYPE(Type, cfg_refer_t_##InName);                              \
                                                                                \
 public:                                                                        \
-  bool set_##InName(const __cfg_refer_t_##InName::type &value) {               \
-    return confgen::item<confgen::meta_t::Refer,                               \
-                         __cfg_refer_t_##InName::type>(                        \
+  bool set_##InName(const cfg_refer_t_##InName::type &value) {                 \
+    return confgen::item<confgen::meta_t::Refer, cfg_refer_t_##InName::type>(  \
                root_, find_ptr(#InName, true))                                 \
-        .set<confgen::meta_t::Value>(value);                                   \
+        .set<confgen::meta_t::Value>(#InName, value);                          \
   }                                                                            \
-  CFG_NO_DISCARD __cfg_refer_t_##InName::type get_##InName(                    \
-      const Type &fallback = __cfg_refer_t_##InName::type{}) const {           \
-    return confgen::item<confgen::meta_t::Group,                               \
-                         __cfg_refer_t_##InName::type>(                        \
+  CFG_NO_DISCARD auto get_##InName(                                            \
+      const cfg_refer_t_##InName::type &fallback =                             \
+          cfg_refer_t_##InName::type{}) const {                                \
+    return confgen::item<confgen::meta_t::Refer, cfg_refer_t_##InName::type>(  \
                root_, find_ptr(#InName, true))                                 \
-        .get<confgen::meta_t::Value>(fallback);                                \
+        .get<confgen::meta_t::Value>(#InName, fallback);                       \
   }
 
 // clang-format off

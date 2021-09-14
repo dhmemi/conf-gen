@@ -244,14 +244,93 @@ TEST_CASE("Group getter and setter") {
              Input(Int, thresh, 5, Show, "threshold", {.ge = 1, .le = 9, .step = 2}),
              Input(F64, rate, 0.5, Hide, "rate", {0, 1, 0.05}, "this is some annotation."));
 
-
   CONF_GROUP(test_conf_t,  
-             Range(VecF64, rate, {0.2, 0.8}, Show, "rate", {0., 1., 0., 1.}),
+             Range(VecF64, range, {0.2, 0.8}, Show, "rate", {0., 1., 0., 1.}),
              Group(test_group_t, inner_group, {}, Show));
   // clang-format on
+  CONF_GROUP(test_conf_t2,
+             Group(test_conf_t, other, {}, Show),
+             Refer(Int,
+                   refer_thresh,
+                   Input,
+                   Show,
+                   "refer threshold",
+                   {.path = "other.inner_group.thresh"},
+                   "annotation of refer."));
 
   test_conf_t conf;
+
   SECTION("get value by chain") {
     CHECK(conf.get_inner_group().get_thresh() == 5);
+    CHECK(conf.get_inner_group().get_rate() == 0.5);
+    CHECK(conf.get_inner_group().get_enable() == false);
+    CHECK(conf.get_range() == std::vector<double>{0.2, 0.8});
+  }
+
+  SECTION("set value by chain") {
+    CHECK(conf.get_inner_group().set_thresh(7));
+    CHECK_FALSE(conf.get_inner_group().set_thresh(8));
+    CHECK(conf.get_inner_group().get_thresh() == 7);
+
+    CHECK(conf.get_inner_group().set_rate(0.7));
+    CHECK_FALSE(conf.get_inner_group().set_rate(0.74));
+    CHECK(conf.get_inner_group().get_rate() == 0.7);
+  }
+}
+
+TEST_CASE("Refer getter and setter") {
+  // clang-format off
+  CONF_GROUP(test_group_t,
+             Check(Bool, enable, false, Show, "is open", "open as default"),
+             Input(Int, thresh, 5, Show, "threshold", {.ge = 1, .le = 9, .step = 2}),
+             Input(F64, rate, 0.5, Hide, "rate", {0, 1, 0.05}, "this is some annotation."));
+
+  CONF_GROUP(test_conf_t,  
+             Range(VecF64, range, {0.2, 0.8}, Show, "rate", {0., 1., 0., 1.}),
+             Group(test_group_t, inner_group, {}, Show),
+             Refer(F64, ref_rate, Input, Show, "ref_rate", {.path = ".inner_group.rate"}));
+
+  CONF_GROUP(test_refer_t,
+             Group(test_conf_t, other, {}, Show),
+             Refer(Int, ref_thresh, Input, Show, "threshold", {.path = "other.inner_group.thresh"}, "annotation of refer."),
+             Refer(test_group_t, ref_group, Group, Show, "group", {.path = "other.inner_group"}));
+  // clang-format on
+
+  test_refer_t conf;
+
+  SECTION("Calling the getter of the referenced object is equivalent "
+          "to calling the getter of the referenced object.") {
+    // INFO(conf.get_ref_thresh());
+    // INFO(conf.get_other().get_inner_group().get_thresh());
+    CHECK(conf.get_ref_thresh() ==
+          conf.get_other().get_inner_group().get_thresh());
+
+    CHECK(conf.get_other().get_ref_rate() ==
+          conf.get_other().get_inner_group().get_rate());
+  }
+
+  SECTION("int input: Calling the setter of the reference is equivalent to "
+          "calling the setter of the referenced item.",
+          "[int]") {
+    auto new_val = GENERATE(1, 3, 5, 7, 9); // NOLINT
+
+    CHECK(conf.set_ref_thresh(new_val));
+    CHECK(conf.get_other().get_inner_group().get_thresh() == new_val);
+  }
+
+  SECTION("double input: Calling the setter of the reference is equivalent to "
+          "calling the setter of the referenced item.",
+          "[float]") {
+    auto new_val = GENERATE(0., 0.1, 0.25, 0.55, 0.6, 0.95, 1.); // NOLINT
+
+    CHECK(conf.get_other().set_ref_rate(new_val));
+    CHECK(conf.get_other().get_inner_group().get_rate() == new_val);
+  }
+
+  SECTION("The reference follow the control rules of the referenced item.") {
+    auto new_val = GENERATE(0., 0.35, 0.36, 0.75, 0.9999, 1.5, 3.0); // NOLINT
+
+    CHECK(conf.get_other().set_ref_rate(new_val) ==
+          conf.get_other().get_inner_group().set_rate(new_val));
   }
 }
