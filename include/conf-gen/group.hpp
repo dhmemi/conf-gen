@@ -17,6 +17,7 @@
 #pragma once
 
 #include <fstream>
+#include <functional>
 #include <memory>
 #include <stdexcept>
 #include <vector>
@@ -26,9 +27,7 @@
 namespace confgen {
 
 class group : public detail::value_base {
-public:
-  using detail::value_base::value_base;
-
+protected:
   CFG_NO_DISCARD CFG_INLINE json *find_ptr(const std::string &name,
                                            bool is_refer = false) const {
     if (is_refer) {
@@ -36,6 +35,9 @@ public:
     }
     return &(*ptr_).at(name);
   }
+
+public:
+  using detail::value_base::value_base;
 
   detail::item_base at(std::string &name);
 
@@ -45,7 +47,7 @@ public:
 
   CFG_NO_DISCARD CFG_INLINE size_t size() const { return ptr_->size(); }
 
-  CFG_NO_DISCARD std::vector<std::string> keys() const {
+  CFG_NO_DISCARD CFG_INLINE std::vector<std::string> keys() const {
     std::vector<std::string> all_keys;
     for (const auto &i : ptr_->items()) {
       all_keys.push_back(i.key());
@@ -53,22 +55,14 @@ public:
     return all_keys;
   }
 
-  CFG_NO_DISCARD bool save_to(const std::string &path) const {
-    std::ofstream file(path);
-    if (!file.is_open()) {
-      return false;
-    }
-    file << *ptr_;
-    return true;
-  }
+  group &with_check() {
+    this->parse_with_check_ = true;
+    return *this;
+  };
 
-  CFG_NO_DISCARD bool read_from(const std::string &path) {
-    std::ifstream file(path);
-    if (!file.is_open()) {
-      return false;
-    }
-    file >> *ptr_;
-    return true;
+  group &with_no_check() {
+    this->parse_with_check_ = false;
+    return *this;
   }
 };
 

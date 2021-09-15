@@ -3,7 +3,6 @@ load("@com_grail_bazel_compdb//:aspects.bzl", "compilation_database")
 cc_library(
     name = "confgen",
     hdrs = [
-        "include/conf-gen/def.hpp",
         "include/conf-gen/generator.hpp",
         "include/conf-gen/group.hpp",
         "include/conf-gen/items.hpp",

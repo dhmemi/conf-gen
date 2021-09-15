@@ -137,6 +137,7 @@ public:                                                                        \
   class Confgen : public confgen::group {                                      \
   public:                                                                      \
     Confgen() : confgen::group() {                                             \
+      this->parse_with_check_ = true;                                          \
       using confgen::permission_t::Show;                                       \
       using confgen::permission_t::Advan;                                      \
       using confgen::permission_t::Hide;                                       \
@@ -148,8 +149,11 @@ public:                                                                        \
     explicit Confgen(const confgen::group &cf_group)                           \
         : confgen::group(cf_group) {}                                          \
     explicit Confgen(const std::shared_ptr<confgen::json> &j,                  \
-                     confgen::json *p = nullptr)                               \
-        : confgen::group(j, p) {}                                              \
+                     confgen::json *p = nullptr,                               \
+                     bool parse_check = true)                                  \
+        : confgen::group(j, p) {                                               \
+      this->parse_with_check_ = parse_check;                                   \
+    }                                                                          \
   }
 
 #define CFG_INIT_1(P, ...) CFG_CONCAT(CFG_INIT_, P)

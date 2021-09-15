@@ -278,7 +278,14 @@ TEST_CASE("Group getter and setter") {
   }
 }
 
+#define BS_STR ("1123434")
+
+#define FULL_STR BS_STR "-" BS_STR
+
 TEST_CASE("Refer getter and setter") {
+  std::cout << ("1123434"
+                "-"
+                "1123434");
   // clang-format off
   CONF_GROUP(test_group_t,
              Check(Bool, enable, false, Show, "is open", "open as default"),

@@ -24,9 +24,20 @@
 #include <utility>
 #include <vector>
 
-#include "def.hpp"
 #include "nlohmann/json.hpp"
 #include <type_traits>
+
+#ifdef __cpp_attributes
+#define CFG_NO_DISCARD [[nodiscard]]
+#else
+#define NO_DISCARD
+#endif
+
+#ifdef __NO_INLINE__
+#define CFG_INLINE
+#else
+#define CFG_INLINE inline
+#endif
 
 namespace confgen {
 
@@ -51,7 +62,7 @@ enum meta_t {
   String = 13, // string
   Select = 14, // int, double, string
   Range = 17,  // vec<[int, double]>
-  Array = 19,  // vec<[bool, int, double, string]>
+  Array = 19,  // vec<[int, double, string]>
   Enums = -14, // it exists just for code color, it will be replaced with Select
                // in parser.
   Refer = 1,   // all
@@ -111,6 +122,31 @@ split(const std::string &in, const std::string &delim, bool rm_empty) {
         vec.end());
   }
   return vec;
+}
+
+inline void compare_merge(const json &src, json &dst) {
+  for (auto &item : dst.items()) {
+    if (!src.contains(item.key())) {
+      continue;
+    }
+
+    auto &dst_value = item.value();
+    permission_t dst_perm = dst_value[key_ns::k_premission].get<permission_t>();
+    if (dst_perm == Fixed) {
+      continue;
+    }
+
+    const auto &src_value = src[item.key()];
+    meta_t dst_meta = dst_value[key_ns::k_meta_type].get<meta_t>();
+    switch (dst_meta) {
+    case Group:
+      compare_merge(src_value, dst_value);
+      break;
+    case Refer:
+    default:
+      break;
+    }
+  }
 }
 
 struct basic_info_t {
@@ -187,15 +223,23 @@ public:
     return Dtype(root_, ptr_);
   }
 
-  CFG_NO_DISCARD const json &get_json() const { return *ptr_; }
-  json &get_json() { return *ptr_; }
+  CFG_NO_DISCARD CFG_INLINE const json &to_json() const { return *ptr_; }
+  CFG_NO_DISCARD CFG_INLINE json &to_json() { return *ptr_; }
 
   friend void to_json(json &j, const value_base &t) { j = *t.ptr_; }
-  friend void from_json(const json &j, value_base &t) { *t.ptr_ = j; }
+  friend void from_json(const json &j, value_base &t) {
+    if (t.parse_with_check_) {
+      compare_merge(j, *t.ptr_);
+    } else {
+      *t.ptr_ = j;
+    }
+  }
 
 protected:
   std::shared_ptr<json> root_;
   json *ptr_;
+
+  bool parse_with_check_ = false; // only used when parse group from json.
 };
 
 class item_base : public value_base {
@@ -204,7 +248,7 @@ public:
 
 #define CFG_ITEM_COMMON_INTERFACE(type, name)                                  \
   CFG_NO_DISCARD CFG_INLINE type name() const {                                \
-    return ptr_->at(detail::key_ns::k_name).get<type>();                       \
+    return ptr_->at(detail::key_ns::k_##name).get<type>();                     \
   }
 
   CFG_ITEM_COMMON_INTERFACE(int, index)

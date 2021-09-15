@@ -2,6 +2,7 @@ cc_test(
     name = "all_catch2_cases",
     srcs = [
         "test_getter_setter.cpp",
+        "test_group.cpp",
     ],
     visibility = ["//:__pkg__"],
     deps = [
