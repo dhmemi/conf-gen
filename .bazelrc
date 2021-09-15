@@ -1,6 +1,3 @@
-# build --remote_cache=grpc://192.168.0.153:9092
-# build --disk_cache=<path>
-
 build --enable_platform_specific_config
 
 build:windows --copt=/utf-8
@@ -13,5 +10,3 @@ build:linux --host_cxxopt=-std=c++17
 build:clang-tidy --aspects @bazel_clang_tidy//clang_tidy:clang_tidy.bzl%clang_tidy_aspect
 build:clang-tidy --output_groups=report
 build:clang-tidy --@bazel_clang_tidy//:clang_tidy_config=//:clang_tidy_config
-
-# coverage --remote_cache=grpc://192.168.0.153:9092
