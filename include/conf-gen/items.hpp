@@ -39,6 +39,8 @@
 #define CFG_INLINE inline
 #endif
 
+#define CFG_TO_STR(x) #x
+
 namespace confgen {
 
 using json = nlohmann::json;
@@ -124,31 +126,9 @@ split(const std::string &in, const std::string &delim, bool rm_empty) {
   return vec;
 }
 
-inline void compare_merge(const json &src, json &dst) {
-  for (auto &item : dst.items()) {
-    if (!src.contains(item.key())) {
-      continue;
-    }
-
-    auto &dst_value = item.value();
-    permission_t dst_perm = dst_value[key_ns::k_premission].get<permission_t>();
-    if (dst_perm == Fixed) {
-      continue;
-    }
-
-    const auto &src_value = src[item.key()];
-    meta_t dst_meta = dst_value[key_ns::k_meta_type].get<meta_t>();
-    switch (dst_meta) {
-    case Group:
-      compare_merge(src_value, dst_value);
-      break;
-    case Refer:
-    default:
-      break;
-    }
-  }
-}
-
+void compare_merge(const std::shared_ptr<json> &root,
+                   const json &src,
+                   json &dst);
 struct basic_info_t {
   int index;
   meta_t meta_type;
@@ -229,7 +209,7 @@ public:
   friend void to_json(json &j, const value_base &t) { j = *t.ptr_; }
   friend void from_json(const json &j, value_base &t) {
     if (t.parse_with_check_) {
-      compare_merge(j, *t.ptr_);
+      compare_merge(t.root_, j, *t.ptr_);
     } else {
       *t.ptr_ = j;
     }
@@ -345,7 +325,7 @@ public:
   struct ctrl_t {
     value_type ge, le, step;
 
-    CFG_INLINE bool valid(const value_type &value) const {
+    CFG_NO_DISCARD CFG_INLINE bool valid(const value_type &value) const {
       return (ge <= value && value <= le && [&value, this] {
         double n = double(value - ge) / step;
         return detail::equal(round(n), n);
@@ -614,5 +594,106 @@ private:
     return value_ptr;
   }
 };
+
+namespace detail {
+
+template <typename Dtype>
+inline bool is_type(const json &j);
+
+#define CFG_J_IS_TYPE(...)                                                     \
+  template <>                                                                  \
+  inline bool is_type<__VA_ARGS__>(const json &j)
+
+CFG_J_IS_TYPE(data_t::Bool) { return j.is_boolean(); }
+CFG_J_IS_TYPE(data_t::Int) { return j.is_number_integer(); }
+CFG_J_IS_TYPE(data_t::F64) { return j.is_number(); }
+CFG_J_IS_TYPE(data_t::Str) { return j.is_string(); }
+CFG_J_IS_TYPE(data_t::VecInt) {
+  return j.is_array() &&
+         std::all_of(j.begin(), j.end(), [](json::const_iterator &i) {
+           return i->is_number_integer();
+         });
+}
+CFG_J_IS_TYPE(data_t::VecF64) {
+  return j.is_array() &&
+         std::all_of(j.begin(), j.end(), [](json::const_iterator &i) {
+           return i->is_number();
+         });
+}
+CFG_J_IS_TYPE(data_t::VecStr) {
+  return j.is_array() &&
+         std::all_of(j.begin(), j.end(), [](json::const_iterator &i) {
+           return i->is_string();
+         });
+}
+
+#undef CFG_J_IS_TYPE
+
+inline void
+compare_merge(const std::shared_ptr<json> &root, const json &src, json &dst) {
+  for (auto &pair : dst.items()) {
+    if (!src.contains(pair.key())) {
+      continue; // TODO() report error
+    }
+
+    auto &dst_item = pair.value();
+    permission_t dst_perm = dst_item[key_ns::k_premission].get<permission_t>();
+    if (dst_perm == Fixed) {
+      continue;
+    }
+
+    const auto &src_item = src[pair.key()];
+    if (!src_item.contains(key_ns::k_value)) {
+      continue; // TODO() report error
+    }
+
+    meta_t dst_meta = dst_item[key_ns::k_meta_type].get<meta_t>();
+    const auto dst_dtype = dst_item[key_ns::k_data_type].get<std::string>();
+    auto &dst_value = dst_item[key_ns::k_value];
+    const auto &src_value = src_item[key_ns::k_value];
+
+#define CHECK_META_DATA_SET(Meta, Data)                                        \
+  dst_dtype == CFG_TO_STR(Int) && is_type<data_t::Data>(src_value) &&          \
+      item<meta_t::Meta, data_t::Data>(root, &dst_item)                        \
+          .set(src_value.get<data_t::Data>())
+
+    switch (dst_meta) {
+    case Check: {
+      CHECK_META_DATA_SET(Check, Bool);
+    } break;
+    case Input: {
+      CHECK_META_DATA_SET(Input, Int);
+      CHECK_META_DATA_SET(Input, F64);
+    } break;
+    case String: {
+      CHECK_META_DATA_SET(String, Str);
+    } break;
+    case Select: {
+      CHECK_META_DATA_SET(Select, Int);
+      CHECK_META_DATA_SET(Select, F64);
+      CHECK_META_DATA_SET(Select, Str);
+    } break;
+    case Range: {
+      CHECK_META_DATA_SET(Range, VecInt);
+      CHECK_META_DATA_SET(Range, VecF64);
+    } break;
+    case Array: {
+      CHECK_META_DATA_SET(Array, VecInt);
+      CHECK_META_DATA_SET(Array, VecF64);
+      CHECK_META_DATA_SET(Array, VecStr);
+    } break;
+    case Group: {
+      if (src_value.is_object()) {
+        compare_merge(root, src_value, dst_value);
+      }
+    } break;
+    case Refer:
+    default:
+      break;
+    }
+  }
+#undef CHECK_META_DATA_SET
+}
+} // namespace detail
 
 } // namespace confgen
