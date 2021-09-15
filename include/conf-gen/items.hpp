@@ -653,7 +653,7 @@ compare_merge(const std::shared_ptr<json> &root, const json &src, json &dst) {
     const auto &src_value = src_item[key_ns::k_value];
 
 #define CHECK_META_DATA_SET(Meta, Data)                                        \
-  dst_dtype == CFG_TO_STR(Int) && is_type<data_t::Data>(src_value) &&          \
+  is_type<data_t::Data>(src_value) && dst_dtype == CFG_TO_STR(Data) &&         \
       item<meta_t::Meta, data_t::Data>(root, &dst_item)                        \
           .set(src_value.get<data_t::Data>())
 
