@@ -19,6 +19,7 @@
 #include <fstream>
 #include <functional>
 #include <memory>
+#include <ostream>
 #include <stdexcept>
 #include <vector>
 
@@ -51,6 +52,10 @@ public:
         .as<Type>();
   }
 
+  CFG_NO_DISCARD auto diff(const json &other) const {
+    return json::diff(*ptr_, other);
+  }
+
   CFG_NO_DISCARD CFG_INLINE bool have_enable_item() const {
     return ptr_->contains("enable");
   }
@@ -75,5 +80,18 @@ public:
     return *this;
   }
 };
+
+inline std::ostream &operator<<(std::ostream &os, const group &cfg) {
+  json j = cfg;
+  os << j;
+  return os;
+}
+
+inline std::istream &operator>>(std::istream &is, group &cfg) {
+  json j;
+  is >> j;
+  j.get_to(cfg);
+  return is;
+}
 
 } // namespace confgen
