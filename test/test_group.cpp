@@ -12,7 +12,7 @@ TEST_CASE("Group function test", "[Group]") {
   // clang-format off
   CONF_GROUP(BoxSize,
              Input(Int, width, 10, Show, "width", {10, 100, 10}, "The box width, should be multiple of 10 in [10, 100]"),
-             Input(Int, height, .value = 50, .ctrl = {10, 200, 20}));
+             Input(Int, height, .value = 50, .ctrl = {10, 200, 20}, .comment = "box's height"));
 
   CONF_GROUP(Color,
              Enums(color_t, fg_color, Green, Show, "foreground color", {{Red, "Red"}, {Green, "Green"}, {Blue, "Blue"}}),
@@ -71,8 +71,22 @@ TEST_CASE("Group function test", "[Group]") {
   SECTION("we can get item infomation through group.at() or get value info "
           "through group.value_at()") {
     CHECK(conf.at("text").meta_type() == confgen::String);
+    CHECK(conf.at("text").data_type() == "Str");
+    CHECK(conf.at("text").premission() == confgen::Fixed);
+    CHECK(conf.value_at<Color>("box_size").at("height").comment() ==
+          "box's height");
     CHECK(conf.value_at<Color>("colors").at("bg_color").data_type() == "Int");
     CHECK(conf.value_at<Color>("box_size").value_at<int>("width") == 10);
     CHECK(conf.at("box_size").data_type() == "Group");
+  }
+
+  SECTION("auto sync conf changed between group create from same instance.") {
+    BoxSize other = conf.get_box_size();
+
+    auto new_size = GENERATE(10, 20, 30, 50, 60, 70, 90); // NOLINT
+
+    CHECKED_IF(other.set_width(new_size)) {
+      CHECK(conf.get_box_size().get_width() == new_size);
+    }
   }
 }
