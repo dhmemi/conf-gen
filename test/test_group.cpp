@@ -27,13 +27,7 @@ TEST_CASE("Group function test", "[Group]") {
 
   Box conf;
 
-  SECTION("conf can be convert to json and output to stream") {
-    std::ostringstream oss;
-    CHECK_NOTHROW(oss << conf.to_json());
-  }
-
-  SECTION("read conf from json") {
-    nlohmann::json outer_json = R"({
+  std::string input_json_str = R"({
         "box_size": {
             "value": {
                 "height": {
@@ -54,7 +48,18 @@ TEST_CASE("Group function test", "[Group]") {
         "text": {
             "value": "item changed outside, but will not be read into as it's Fixed."
         }
-    })"_json;
+    })";
+
+  SECTION("conf can be convert to json and output to stream") {
+    std::ostringstream oss;
+    CHECK_NOTHROW(oss << conf);
+
+    std::istringstream iss(input_json_str);
+    CHECK_NOTHROW(iss >> conf.with_check());
+  }
+
+  SECTION("read conf from json") {
+    nlohmann::json outer_json = nlohmann::json::parse(input_json_str);
 
     outer_json.get_to(conf);
 
