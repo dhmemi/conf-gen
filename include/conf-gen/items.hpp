@@ -195,12 +195,12 @@ public:
     }
   }
 
-  template <typename Dtype>
-  Dtype as() const {
-    static_assert(std::is_base_of_v<value_base, Dtype>,
-                  "value_base only can be convert to derived type of "
-                  "confgen::detail::value_base");
-    return Dtype(root_, ptr_);
+  template <typename Type>
+  Type as() const {
+    if constexpr (std::is_base_of_v<value_base, Type>) {
+      return Type(root_, ptr_);
+    }
+    return ptr_->get<Type>();
   }
 
   CFG_NO_DISCARD CFG_INLINE const json &to_json() const { return *ptr_; }
@@ -231,6 +231,10 @@ public:
     return ptr_->at(detail::key_ns::k_##name).get<type>();                     \
   }
 
+  CFG_NO_DISCARD value_base value() const {
+    return value_base(root_, &(ptr_->at(detail ::key_ns ::k_value)));
+  }
+
   CFG_ITEM_COMMON_INTERFACE(int, index)
   CFG_ITEM_COMMON_INTERFACE(std::string, data_type)
   CFG_ITEM_COMMON_INTERFACE(meta_t, meta_type)
@@ -240,6 +244,17 @@ public:
   CFG_ITEM_COMMON_INTERFACE(json, ctrl_info)
 
 #undef CFG_ITEM_COMMON_INTERFACE
+
+  template <typename Type>
+  Type as() const {
+    static_assert(std::is_base_of_v<item_base, Type>,
+                  "item could only be convert to derived type of "
+                  "confgen::detail::item_base.");
+    return Type(root_, ptr_);
+  }
+
+private:
+  using value_base::as;
 };
 
 template <typename Dtype>
@@ -609,21 +624,18 @@ CFG_J_IS_TYPE(data_t::Int) { return j.is_number_integer(); }
 CFG_J_IS_TYPE(data_t::F64) { return j.is_number(); }
 CFG_J_IS_TYPE(data_t::Str) { return j.is_string(); }
 CFG_J_IS_TYPE(data_t::VecInt) {
-  return j.is_array() &&
-         std::all_of(j.begin(), j.end(), [](json::const_iterator &i) {
-           return i->is_number_integer();
+  return j.is_array() && std::all_of(j.begin(), j.end(), [](const json &i) {
+           return i.is_number_integer();
          });
 }
 CFG_J_IS_TYPE(data_t::VecF64) {
-  return j.is_array() &&
-         std::all_of(j.begin(), j.end(), [](json::const_iterator &i) {
-           return i->is_number();
+  return j.is_array() && std::all_of(j.begin(), j.end(), [](const json &i) {
+           return i.is_number();
          });
 }
 CFG_J_IS_TYPE(data_t::VecStr) {
-  return j.is_array() &&
-         std::all_of(j.begin(), j.end(), [](json::const_iterator &i) {
-           return i->is_string();
+  return j.is_array() && std::all_of(j.begin(), j.end(), [](const json &i) {
+           return i.is_string();
          });
 }
 

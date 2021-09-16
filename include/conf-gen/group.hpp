@@ -39,7 +39,17 @@ protected:
 public:
   using detail::value_base::value_base;
 
-  detail::item_base at(std::string &name);
+  template <typename Type = detail::item_base>
+  CFG_NO_DISCARD CFG_INLINE Type at(const std::string &name) const {
+    return detail::item_base(root_, &(ptr_->at(name))).as<Type>();
+  }
+
+  template <typename Type = detail::value_base>
+  CFG_NO_DISCARD CFG_INLINE Type value_at(const std::string &name) const {
+    return detail::value_base(root_,
+                              &(ptr_->at(name).at(detail::key_ns::k_value)))
+        .as<Type>();
+  }
 
   CFG_NO_DISCARD CFG_INLINE bool have_enable_item() const {
     return ptr_->contains("enable");
