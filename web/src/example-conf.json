@@ -1,0 +1,177 @@
+    {
+        "box_size": {
+            "comment": "",
+            "dtype": "Group",
+            "index": 0,
+            "mtype": 2,
+            "name": "size",
+            "premission": 0,
+            "value": {
+                "enable": {
+                    "comment": "",
+                    "dtype": "Bool",
+                    "index": 0,
+                    "mtype": 10,
+                    "name": "enable size",
+                    "premission": 0,
+                    "value": true
+                },
+                "height": {
+                    "comment": "box's height",
+                    "ctrls": {
+                        "ge": 10,
+                        "le": 200,
+                        "step": 20
+                    },
+                    "dtype": "Int",
+                    "index": 2,
+                    "mtype": 11,
+                    "name": "height",
+                    "premission": 0,
+                    "value": 50
+                },
+                "scale": {
+                    "comment": "",
+                    "ctrls": {
+                        "ge": 0.2,
+                        "le": 1.0,
+                        "step": 0.05
+                    },
+                    "dtype": "F64",
+                    "index": 3,
+                    "mtype": 11,
+                    "name": "size scale",
+                    "premission": 0,
+                    "value": 0.5
+                },
+                "width": {
+                    "comment": "The box width, should be multiple of 10 in [10, 100]",
+                    "ctrls": {
+                        "ge": 10,
+                        "le": 100,
+                        "step": 10
+                    },
+                    "dtype": "Int",
+                    "index": 1,
+                    "mtype": 11,
+                    "name": "width",
+                    "premission": 0,
+                    "value": 10
+                }
+            }
+        },
+        "colors": {
+            "comment": "",
+            "dtype": "Group",
+            "index": 1,
+            "mtype": 2,
+            "name": "colors",
+            "premission": 1,
+            "value": {
+                "bg_color": {
+                    "comment": "",
+                    "ctrls": [
+                        {
+                            "name": "Gray",
+                            "value": 3
+                        },
+                        {
+                            "name": "White",
+                            "value": 4
+                        },
+                        {
+                            "name": "Black",
+                            "value": 5
+                        }
+                    ],
+                    "dtype": "Int",
+                    "index": 1,
+                    "mtype": 14,
+                    "name": "bg_color",
+                    "premission": 0,
+                    "value": 5
+                },
+                "fg_color": {
+                    "comment": "",
+                    "ctrls": [
+                        {
+                            "name": "Red",
+                            "value": 0
+                        },
+                        {
+                            "name": "Green",
+                            "value": 1
+                        },
+                        {
+                            "name": "Blue",
+                            "value": 2
+                        }
+                    ],
+                    "dtype": "Int",
+                    "index": 0,
+                    "mtype": 14,
+                    "name": "foreground color",
+                    "premission": 0,
+                    "value": 1
+                },
+                "ref_scale": {
+                    "comment": "",
+                    "ctrls": {
+                        "path": "box_size.scale"
+                    },
+                    "dtype": "Str",
+                    "index": 2,
+                    "mtype": 1,
+                    "name": "size scale",
+                    "premission": 0,
+                    "value": null
+                }
+            }
+        },
+        "kernals": {
+            "comment": "kernal size",
+            "ctrls": {
+                "ge": 1,
+                "le": 9,
+                "step": 2
+            },
+            "dtype": "VecInt",
+            "index": 4,
+            "mtype": 19,
+            "name": "kernal sizes",
+            "premission": 2,
+            "value": [
+                3
+            ]
+        },
+        "rotate_range": {
+            "comment": "",
+            "ctrls": {
+                "l0": 0.0,
+                "l1": 0.0,
+                "r0": 90.0,
+                "r1": 90.0
+            },
+            "dtype": "VecF64",
+            "index": 3,
+            "mtype": 17,
+            "name": "rorate range",
+            "premission": 1,
+            "value": [
+                0.0,
+                10.0
+            ]
+        },
+        "text": {
+            "comment": "",
+            "ctrls": {
+                "regex": ""
+            },
+            "dtype": "Str",
+            "index": 2,
+            "mtype": 13,
+            "name": "text",
+            "premission": 3,
+            "value": "Hello World"
+        }
+    }
