@@ -1,6 +1,7 @@
 cc_test(
     name = "all_catch2_cases",
     srcs = [
+        "test_all_types.cpp",
         "test_getter_setter.cpp",
         "test_group.cpp",
     ],
