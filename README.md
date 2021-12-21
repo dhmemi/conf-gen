@@ -6,7 +6,7 @@ Conf-gen is a configuration file and parameter interface generator designed for 
 
 # Requirements
 - This project is developed based on C++20, so it requires C++20.
-- [nlohmann::json](https://github.com/nlohmann/json/) is the only third-party dependent library.
+- [nlohmann::json](https://github.com/nlohmann/json/) is the only third-party dependency.
 
 # Supported Compilers
 - Tested on Vistul Studio 2019
