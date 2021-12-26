@@ -1,0 +1,53 @@
+{
+    "enable": {
+        "comment": "",
+        "dtype": "Bool",
+        "index": 0,
+        "mtype": 10,
+        "name": "enable size",
+        "premission": 0,
+        "value": true
+    },
+    "height": {
+        "comment": "box's height",
+        "ctrls": {
+            "ge": 10,
+            "le": 200,
+            "step": 20
+        },
+        "dtype": "Int",
+        "index": 2,
+        "mtype": 11,
+        "name": "height",
+        "premission": 0,
+        "value": 50
+    },
+    "scale": {
+        "comment": "",
+        "ctrls": {
+            "ge": 0.2,
+            "le": 1.0,
+            "step": 0.05
+        },
+        "dtype": "F64",
+        "index": 3,
+        "mtype": 11,
+        "name": "size scale",
+        "premission": 0,
+        "value": 0.5
+    },
+    "width": {
+        "comment": "The box width, should be multiple of 10 in [10, 100]",
+        "ctrls": {
+            "ge": 10,
+            "le": 100,
+            "step": 10
+        },
+        "dtype": "Int",
+        "index": 1,
+        "mtype": 11,
+        "name": "width",
+        "premission": 0,
+        "value": 10
+    }
+}
