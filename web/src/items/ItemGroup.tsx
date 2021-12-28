@@ -6,6 +6,7 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import TreeItem, { treeItemClasses } from "@mui/lab/TreeItem";
 
 import ItemCheck from "./ItemCheck"
+import ItemInput from "./ItemInput";
 
 type StyledTreeItemProps = {
   rootNode?: boolean;
@@ -56,7 +57,7 @@ export default class ParamTree extends React.Component<Param> {
       >
         <StyledTreeItem rootNode nodeId="0" label="Applications">
           {<StyledTreeItem nodeId="2" label={<ItemCheck data={this.props.data.enable} onClick={() => { }} />} />}
-          <StyledTreeItem nodeId="3" label="Drive" />
+          <StyledTreeItem nodeId="3" label={<ItemInput data={this.props.data.height} onClick={() => { }} />} />
           <StyledTreeItem nodeId="4" label="Inbox">
             <StyledTreeItem nodeId="5" label="One" />
             <StyledTreeItem nodeId="6" label="Two" />
